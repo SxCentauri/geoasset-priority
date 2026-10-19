@@ -1,0 +1,13 @@
+asset_id,asset_type,subtype,name,wkt,condition,install_year,last_inspection,surveyor,notes,reject_reason
+CV-X009,gorong_gorong,beton,,POINT (102.32800416678468 -3.8134019424476877),2.0,1890.0,2026-07-03,Tim-D,,tahun pasang tidak wajar (harus 1950-2026)
+LT-X003,lampu_pju,led,,POINT (abc def),1.0,2025.0,2026-03-26,Tim-A,,WKT tidak valid
+CV-X005,gorong_gorong,beton,,POINT (110.5 -6.2),3.0,2005.0,2026-07-09,Tim-A,,di luar wilayah studi (cek urutan lon/lat)
+LT-X006,lampu_pju,led,,POINT (102.30123486020948 -3.808205402710366),9.0,2019.0,2026-09-13,Tim-B,,skor kondisi di luar rentang 1-5
+RD-X007,jalan,lokal,Ruas Jalan 05,"LINESTRING (102.30980170718124 -3.841776554467188, 102.3115089735255 -3.8435094725186, 102.31279944358745 -3.845813963714809, 102.3149145495474 -3.847868346877918, 102.31720142957984 -3.8488972000548607, 102.32006408682194 -3.8502112648161178)",0.0,2005.0,2026-08-25,Tim-B,,skor kondisi di luar rentang 1-5
+LT-0001,lampu_pju,led,,POINT (102.28518731224104 -3.8101786215967297),2.0,2021.0,2026-06-12,Tim-A,,asset_id duplikat
+LT-0003,lampu_pju,led,,POINT (102.28304065310603 -3.81019783410139),4.0,2019.0,2026-08-27,Tim-D,,asset_id duplikat
+LT-0002,lampu_pju,led,,POINT (102.28413932412472 -3.8102041477578945),4.0,2012.0,2026-07-27,Tim-C,,asset_id duplikat
+LT-X001,lampu_pju,led,,,3.0,2018.0,2026-05-12,Tim-D,,geometri kosong
+LT-X004,lampu_pju,led,,POINT (-3.81 102.30),5.0,2016.0,2026-08-04,Tim-B,,di luar wilayah studi (cek urutan lon/lat)
+LT-X008,lampu_pju,led,,POINT (102.30215925475396 -3.8073903641687097),2.0,2031.0,2026-08-14,Tim-A,,tahun pasang tidak wajar (harus 1950-2026)
+CV-X002,gorong_gorong,beton,,,2.0,2005.0,2026-06-08,Tim-A,,geometri kosong

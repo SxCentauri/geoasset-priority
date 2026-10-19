@@ -1,0 +1,16 @@
+{
+  "baris_mentah": 401,
+  "baris_bersih": 389,
+  "baris_ditolak": 12,
+  "aset_dinilai": 364,
+  "prioritas": {
+    "Rendah": 188,
+    "Sedang": 132,
+    "Tinggi": 44
+  },
+  "anggaran_idr": 2000000000,
+  "aset_terpilih": 147,
+  "biaya_terpakai_idr": 1967709000,
+  "risiko_tercakup_pct": 79.2,
+  "total_kebutuhan_idr": 26636814000
+}

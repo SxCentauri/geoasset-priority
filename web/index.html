@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GeoAsset Priority – Peta Prioritas Aset</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root { --bg:#ffffff; --fg:#1f2937; --muted:#6b7280; --card:#f3f4f6; --line:#e5e7eb; --accent:#1d4ed8; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#111827; --fg:#f3f4f6; --muted:#9ca3af; --card:#1f2937; --line:#374151; --accent:#60a5fa; }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--fg); }
+  #app { display: grid; grid-template-columns: 330px 1fr; height: 100%; }
+  aside { padding: 16px; overflow-y: auto; border-right: 1px solid var(--line); background: var(--bg); }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 12px; margin-bottom: 14px; }
+  .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .kpi { background: var(--card); border-radius: 10px; padding: 10px; }
+  .kpi b { display: block; font-size: 20px; }
+  .kpi span { font-size: 11px; color: var(--muted); }
+  fieldset { border: 1px solid var(--line); border-radius: 10px; margin: 0 0 12px; padding: 8px 12px; }
+  legend { font-size: 12px; color: var(--muted); padding: 0 6px; }
+  label { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 3px 0; cursor: pointer; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+  input[type=range] { width: 100%; }
+  #map { height: 100%; }
+  .note { font-size: 11px; color: var(--muted); line-height: 1.5; }
+  .legend-chip { font-size: 12px; }
+  table.pop td { padding: 1px 8px 1px 0; font-size: 12px; }
+  table.pop td:first-child { color: #6b7280; }
+  @media (max-width: 760px) { #app { grid-template-columns: 1fr; grid-template-rows: 46% 54%; } aside { order: 2; border-right: 0; border-top: 1px solid var(--line);} }
+</style>
+</head>
+<body>
+<div id="app">
+  <aside>
+    <h1>GeoAsset Priority</h1>
+    <div class="sub">Prioritas pemeliharaan aset kota · data sintetis</div>
+    <div class="kpis" id="kpis"></div>
+
+    <fieldset><legend>Kelas prioritas</legend>
+      <label><input type="checkbox" class="f-pri" value="Tinggi" checked><span class="dot" style="background:#d62828"></span>Tinggi</label>
+      <label><input type="checkbox" class="f-pri" value="Sedang" checked><span class="dot" style="background:#f77f00"></span>Sedang</label>
+      <label><input type="checkbox" class="f-pri" value="Rendah" checked><span class="dot" style="background:#2a9d8f"></span>Rendah</label>
+    </fieldset>
+
+    <fieldset><legend>Tipe aset</legend>
+      <label><input type="checkbox" class="f-type" value="jalan" checked>Jalan</label>
+      <label><input type="checkbox" class="f-type" value="lampu_pju" checked>Lampu PJU</label>
+      <label><input type="checkbox" class="f-type" value="gorong_gorong" checked>Gorong-gorong</label>
+    </fieldset>
+
+    <fieldset><legend>Skor risiko minimum: <b id="minv">0</b></legend>
+      <input type="range" id="minrisk" min="0" max="100" value="0">
+    </fieldset>
+
+    <fieldset><legend>Lapisan</legend>
+      <label><input type="checkbox" id="l-zone" checked>Zona (rata-rata risiko)</label>
+      <label><input type="checkbox" id="l-fac" checked>Fasilitas kritis</label>
+      <label><input type="checkbox" id="l-plan">Hanya aset dalam rencana anggaran</label>
+    </fieldset>
+
+    <p class="note" id="budgetnote"></p>
+    <p class="note">Skor risiko = kondisi (50%) + umur (30%) + kritikalitas (20%) × bobot tipe.
+    Biaya adalah asumsi, bukan data resmi. Detail metode ada di README.</p>
+  </aside>
+  <div id="map"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="data.js"></script>
+<script>
+const D = window.GEOASSET_DATA;
+const COLORS = { Tinggi: "#d62828", Sedang: "#f77f00", Rendah: "#2a9d8f" };
+const fmtIDR = n => "Rp " + Number(n).toLocaleString("id-ID");
+const planIds = new Set(D.plan_ids);
+
+const [x0, y0, x1, y1] = D.bbox;
+const map = L.map("map").fitBounds([[y0, x0], [y1, x1]]);
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 19, attribution: "&copy; OpenStreetMap contributors"
+}).addTo(map);
+
+const risks = D.zones.features.map(f => f.properties.rata_risiko);
+const rmin = Math.min(...risks), rmax = Math.max(...risks);
+const zoneColor = v => `rgba(29,78,216,${0.08 + 0.4 * (v - rmin) / Math.max(rmax - rmin, 1e-9)})`;
+const zoneLayer = L.geoJSON(D.zones, {
+  style: f => ({ color: "#6b7280", weight: 1, fillColor: zoneColor(f.properties.rata_risiko), fillOpacity: 1 }),
+  onEachFeature: (f, l) => {
+    const p = f.properties;
+    l.bindTooltip(`<b>${p.zone}</b><br>Rata-rata risiko: ${p.rata_risiko}<br>Aset prioritas tinggi: ${p.aset_prioritas_tinggi}`);
+  }
+}).addTo(map);
+
+const facLayer = L.geoJSON(D.facilities, {
+  pointToLayer: (f, ll) => L.circleMarker(ll, { radius: 6, color: "#111827", weight: 2, fillColor: "#fde047", fillOpacity: 1 }),
+  onEachFeature: (f, l) => l.bindTooltip(`${f.properties.name} (${f.properties.subtype})`)
+}).addTo(map);
+
+let assetLayer = null;
+const popup = p => `<b>${p.asset_id}</b> · ${p.asset_type.replace("_", " ")}
+  <table class="pop">
+  <tr><td>Skor risiko</td><td><b>${p.risk_score}</b> (${p.priority})</td></tr>
+  <tr><td>Kondisi (1-5)</td><td>${p.condition}</td></tr>
+  <tr><td>Umur</td><td>${p.umur} th (pasang ${p.install_year})</td></tr>
+  <tr><td>Kritikalitas</td><td>${(+p.f_kritis).toFixed(2)}</td></tr>
+  <tr><td>Kuantitas</td><td>${p.quantity} ${p.unit}</td></tr>
+  <tr><td>Estimasi biaya</td><td>${fmtIDR(p.est_cost_idr)}</td></tr>
+  <tr><td>Dalam rencana</td><td>${planIds.has(p.asset_id) ? "Ya" : "Tidak"}</td></tr></table>`;
+
+function selected() {
+  const pri = [...document.querySelectorAll(".f-pri:checked")].map(e => e.value);
+  const typ = [...document.querySelectorAll(".f-type:checked")].map(e => e.value);
+  const min = +document.getElementById("minrisk").value;
+  const onlyPlan = document.getElementById("l-plan").checked;
+  return D.assets.features.filter(f => {
+    const p = f.properties;
+    return pri.includes(p.priority) && typ.includes(p.asset_type) && p.risk_score >= min
+      && (!onlyPlan || planIds.has(p.asset_id));
+  });
+}
+
+function render() {
+  if (assetLayer) map.removeLayer(assetLayer);
+  const feats = selected();
+  assetLayer = L.geoJSON({ type: "FeatureCollection", features: feats }, {
+    style: f => ({ color: COLORS[f.properties.priority], weight: 4, opacity: 0.95 }),
+    pointToLayer: (f, ll) => L.circleMarker(ll, {
+      radius: 5, color: "#fff", weight: 1, fillColor: COLORS[f.properties.priority], fillOpacity: 1 }),
+    onEachFeature: (f, l) => l.bindPopup(popup(f.properties))
+  }).addTo(map);
+  document.getElementById("minv").textContent = document.getElementById("minrisk").value;
+  kpis(feats);
+}
+
+function kpis(feats) {
+  const cost = feats.reduce((s, f) => s + f.properties.est_cost_idr, 0);
+  const high = feats.filter(f => f.properties.priority === "Tinggi").length;
+  const avg = feats.length ? (feats.reduce((s, f) => s + f.properties.risk_score, 0) / feats.length).toFixed(1) : "–";
+  document.getElementById("kpis").innerHTML = `
+    <div class="kpi"><b>${feats.length}</b><span>aset tampil</span></div>
+    <div class="kpi"><b>${high}</b><span>prioritas tinggi</span></div>
+    <div class="kpi"><b>${avg}</b><span>rata-rata risiko</span></div>
+    <div class="kpi"><b>${(cost / 1e9).toFixed(2)} M</b><span>est. biaya (Rp miliar)</span></div>`;
+}
+
+document.querySelectorAll(".f-pri,.f-type,#minrisk,#l-plan").forEach(e => e.addEventListener("input", render));
+document.getElementById("l-zone").addEventListener("change", e => e.target.checked ? zoneLayer.addTo(map) : map.removeLayer(zoneLayer));
+document.getElementById("l-fac").addEventListener("change", e => e.target.checked ? facLayer.addTo(map) : map.removeLayer(facLayer));
+document.getElementById("budgetnote").textContent =
+  `Rencana anggaran: ${fmtIDR(D.budget_idr)} → ${D.plan_ids.length} aset terpilih (algoritma greedy risiko/biaya).`;
+render();
+</script>
+</body>
+</html>

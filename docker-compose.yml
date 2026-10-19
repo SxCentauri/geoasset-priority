@@ -1,0 +1,14 @@
+services:
+  postgis:
+    image: postgis/postgis:16-3.4
+    container_name: geoasset-postgis
+    environment:
+      POSTGRES_USER: geoasset
+      POSTGRES_PASSWORD: geoasset
+      POSTGRES_DB: geoasset
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+volumes:
+  pgdata:
