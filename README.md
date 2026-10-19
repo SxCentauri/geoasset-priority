@@ -292,7 +292,7 @@ Alasan penolakan: ID ganda (3), tahun tidak wajar (2), di luar wilayah (2), kond
 
 ```bash
 # 1. Salin / clone repositori
-git clone https://github.com/<username-anda>/geoasset-priority.git
+git clone https://github.com/SxCentauri/geoasset-priority.git
 cd geoasset-priority
 
 # 2. (disarankan) virtual environment
